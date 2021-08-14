@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "InGen.Generators": {
+      "commandName": "DebugRoslynComponent"
+    }
+  }
+}
