@@ -1,7 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -35,10 +34,13 @@ namespace InGen.Generators
         {
             var toStringContend = string.Join(",", properties.Select(x => $"{x.Identifier.Text}={{{x.Identifier.Text}}}"));
             var code = $@"
-                        namespace Client {{
+                        namespace InGen.Client {{
                             public partial class {className}
                             {{
-                                public string ToString()=>$""{toStringContend}"";
+                                public override string ToString()
+                                {{
+                                    return $""{toStringContend}"";
+                                }}
                             }}
                         }}";
             return code;
