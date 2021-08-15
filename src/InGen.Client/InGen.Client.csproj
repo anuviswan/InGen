@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -6,7 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\InGen.Generators\InGen.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\InGen.Generators\InGen.Generators.csproj" 
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\InGen.Types\InGen.Types.csproj" />
   </ItemGroup>
 
