@@ -1,7 +1,8 @@
 {
   "profiles": {
     "InGen.Generators": {
-      "commandName": "DebugRoslynComponent"
+      "commandName": "DebugRoslynComponent",
+      "targetProject": "..\\InGen.Client\\InGen.Client.csproj"
     }
   }
 }
