@@ -75,8 +75,8 @@ public void NotifyPropertyChanged([CallerMemberName] string propertyName = """")
                     var attributes = classDeclaration.DescendantNodes().OfType<AttributeSyntax>();
                     if (attributes.Any())
                     {
-                        var autoToStringAttribute = attributes.FirstOrDefault(x => ExtractName(x.Name) == "AutoImplmentNotifyChange");
-                        if (autoToStringAttribute != null) IdentifiedClass = classDeclaration;
+                        var expectedAttribute = attributes.FirstOrDefault(x => ExtractName(x.Name) == "AutoImplmentNotifyChange");
+                        if (expectedAttribute != null) IdentifiedClass = classDeclaration;
                     }
                 }
             }
