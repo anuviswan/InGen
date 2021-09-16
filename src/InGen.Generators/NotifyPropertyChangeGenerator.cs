@@ -17,10 +17,10 @@ namespace InGen.Generators
 
             if(syntaxReciever.IdentifiedClass is ClassDeclarationSyntax userClass)
             {
+                var model = context.Compilation.GetSemanticModel(userClass.SyntaxTree);
                 var namespaceDeclaration = userClass.FirstAncestorOrSelf<NamespaceDeclarationSyntax>();
                 var nmspc = namespaceDeclaration.Name.ToString();
                 var notifySymbol = context.Compilation.GetTypeByMetadataName("System.ComponentModel.INotifyPropertyChanged").ToDisplayString();
-
                 var code = GenerateSource(nmspc,userClass.Identifier.Text, notifySymbol);
 
                 context.AddSource(

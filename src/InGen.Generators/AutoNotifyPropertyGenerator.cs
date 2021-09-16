@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
+using Microsoft.CodeAnalysis.CSharp;
+using System.Text.RegularExpressions;
 
 namespace InGen.Generators
 {
@@ -18,42 +20,70 @@ namespace InGen.Generators
             
             if(syntaxReciever.IdentifiedField is FieldDeclarationSyntax fieldDeclaration)
             {
+                var sourceBuilder = new StringBuilder();
                 var classDeclaration = fieldDeclaration.Ancestors().OfType<ClassDeclarationSyntax>().First();
+                var namespaceDeclaration = classDeclaration.FirstAncestorOrSelf<NamespaceDeclarationSyntax>();
+                var nmspc = namespaceDeclaration.Name.ToString();
                 var model = context.Compilation.GetSemanticModel(classDeclaration.SyntaxTree);
+                var classInterfaces = model.GetDeclaredSymbol(classDeclaration).AllInterfaces;
+                var notifySymbol = context.Compilation.GetTypeByMetadataName("System.ComponentModel.INotifyPropertyChanged");
+                var implementINotifyPropertyChanged = classInterfaces.Contains(notifySymbol);
 
-                var hasNotifyPropertyChangedImplemented = InheritsFrom<INotifyPropertyChanged>(classDeclaration.sym)
                 var variableDeclaration = fieldDeclaration.Declaration.Variables.First();
                 var fieldName = variableDeclaration.Identifier.Text;
-                var fieldType = fieldDeclaration.Declaration.Type;
+                var fieldType = fieldDeclaration.Declaration.Type.ToString();
+
+                sourceBuilder.Append($@"using System.ComponentModel;
+using System.Runtime.CompilerServices;
+namespace {nmspc}
+{{
+    public partial class {classDeclaration.Identifier.Text} {(implementINotifyPropertyChanged ? $": {notifySymbol.Name}" : string.Empty)}
+{{
+    {(implementINotifyPropertyChanged ? $": {GetNotifyPropertyChangeImplementation()}" : string.Empty)}
+    {GetPropertyDeclaration(fieldName,fieldType)}
+}}
+}}");
+                
+
+
 
             }
         }
 
-        private bool ImplementsInterface<T>(ClassDeclarationSyntax classDeclaration)
+
+        private string GetPropertyDeclaration(string fieldName,string fieldType)
         {
-            var interfaceTypeName = 
+            var str = new StringBuilder();
+            str.Append($"public {fieldType} {NormalizePropertyName(fieldName)}");
+            str.Append("{");
+            str.Append($"get=> {fieldName};");
+            str.Append($"set");
+            str.Append("{");
+            str.Append($"if({fieldName}==value) return;");
+            str.Append($"{fieldName}=value;");
+            str.Append($"NotifyPropertyChanged();");
+            str.Append("}");
+            str.Append("}");
+            return str.ToString();
         }
-        private bool InheritsFrom<T>(Type typeInQuestion)
+
+        private string NormalizePropertyName(string fieldName)
         {
-            var interfaceType = typeof(T);
-            foreach (var interfaceMember in interfaceType.GetMembers().OfType<IMethodSymbol>())
-            {
-                var memberFound = false;
-                foreach (var typeMember in typeInQuestion.GetMembers().OfType<IMethodSymbol>())
-                {
-                    if (typeMember.Equals(typeInQuestion.FindImplementationForInterfaceMember(interfaceMember)))
-                    {
-                        // this member is found
-                        memberFound = true;
-                        break;
-                    }
-                }
-                if (!memberFound)
-                {
-                    return false;
-                }
-            }
-            return true;
+            return Regex.Replace(fieldName, "_[a-z]", delegate (Match m) {
+                return m.ToString().TrimStart('_').ToUpper();
+            });
+        }
+
+
+        private string GetNotifyPropertyChangeImplementation()
+        {
+            return @"
+public event PropertyChangedEventHandler PropertyChanged;
+
+public void NotifyPropertyChanged([CallerMemberName] string propertyName = """")
+{
+    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+}";
         }
 
         public void Initialize(GeneratorInitializationContext context)
