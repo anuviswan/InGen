@@ -1,12 +1,11 @@
 ﻿using InGen.Types.Attributes;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Text;
-using Microsoft.CodeAnalysis.CSharp;
 using System.Text.RegularExpressions;
 
 namespace InGen.Generators
@@ -37,18 +36,21 @@ namespace InGen.Generators
 using System.Runtime.CompilerServices;
 namespace {nmspc}
 {{
-    public partial class {classDeclaration.Identifier.Text} {(implementINotifyPropertyChanged ? $": {notifySymbol.Name}" : string.Empty)}
+    public partial class {classDeclaration.Identifier.Text} {(implementINotifyPropertyChanged == false? $": {notifySymbol.Name}" : string.Empty)}
 {{
-    {(implementINotifyPropertyChanged ? $": {GetNotifyPropertyChangeImplementation()}" : string.Empty)}
+    {(implementINotifyPropertyChanged == false? $"{GetNotifyPropertyChangeImplementation()}" : string.Empty)}
     {GetPropertyDeclaration(fieldName,fieldType)}
 }}
 }}");
-                
 
+                context.AddSource(
+                    $"{classDeclaration.Identifier.Text}_{fieldName}.generated",
+                    SourceText.From(sourceBuilder.ToString(), Encoding.UTF8));
 
 
             }
         }
+
 
 
         private string GetPropertyDeclaration(string fieldName,string fieldType)
