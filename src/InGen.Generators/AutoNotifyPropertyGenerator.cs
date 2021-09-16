@@ -15,9 +15,10 @@ namespace InGen.Generators
     {
         public void Execute(GeneratorExecutionContext context)
         {
-            var syntaxReciever = (FieldSyntaxReciever<AutoNotifyAttribute>)context.SyntaxReceiver;
-            
-            if(syntaxReciever.IdentifiedField is FieldDeclarationSyntax fieldDeclaration)
+            //var syntaxReciever = (FieldSyntaxReciever<AutoNotifyAttribute>)context.SyntaxReceiver;
+            var syntaxReciever = (FieldSyntaxReciever)context.SyntaxReceiver;
+
+            if (syntaxReciever.IdentifiedField is FieldDeclarationSyntax fieldDeclaration)
             {
                 var sourceBuilder = new StringBuilder();
                 var classDeclaration = fieldDeclaration.Ancestors().OfType<ClassDeclarationSyntax>().First();
@@ -47,7 +48,8 @@ namespace {nmspc}
                     $"{classDeclaration.Identifier.Text}_{fieldName}.generated",
                     SourceText.From(sourceBuilder.ToString(), Encoding.UTF8));
 
-
+                var g =  context.Compilation;
+                var gg = g.GetDiagnostics();
             }
         }
 
@@ -90,10 +92,10 @@ public void NotifyPropertyChanged([CallerMemberName] string propertyName = """")
 
         public void Initialize(GeneratorInitializationContext context)
         {
-            context.RegisterForSyntaxNotifications(() => new FieldSyntaxReciever<AutoNotifyAttribute>());
+            context.RegisterForSyntaxNotifications(() => new FieldSyntaxReciever());
         }
 
-        private class FieldSyntaxReciever<TAttribute> : ISyntaxReceiver where TAttribute:Attribute
+        private class FieldSyntaxReciever : ISyntaxReceiver //where TAttribute:Attribute
         {
             public FieldDeclarationSyntax IdentifiedField { get; set; }
             public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
@@ -103,7 +105,7 @@ public void NotifyPropertyChanged([CallerMemberName] string propertyName = """")
                     var attributes = fieldDeclaration.DescendantNodes().OfType<AttributeSyntax>();
                     if (attributes.Any())
                     {
-                        var expectedAttribute = attributes.FirstOrDefault(x => ExtractName(x.Name) == typeof(TAttribute).Name.Replace("Attribute", "")) ;
+                        var expectedAttribute = attributes.FirstOrDefault(x => ExtractName(x.Name) == "AutoNotify") ;
                         if (expectedAttribute != null) IdentifiedField = fieldDeclaration;
                     }
                 }
