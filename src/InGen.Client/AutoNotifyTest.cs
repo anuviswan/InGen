@@ -11,6 +11,9 @@ namespace InGen.Client
 
         private string _userName;
 
+        [AutoNotify]
+        private int _age;
+
        
     }
 }

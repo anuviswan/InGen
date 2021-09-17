@@ -1,9 +1,7 @@
-﻿using InGen.Types.Attributes;
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -36,40 +34,6 @@ namespace InGen.Generators
 
             }
             
-
-//            var classDeclaration = fieldDeclaration.Ancestors().OfType<ClassDeclarationSyntax>().First();
-//            var namespaceDeclaration = classDeclaration.FirstAncestorOrSelf<NamespaceDeclarationSyntax>();
-//            var nmspc = namespaceDeclaration.Name.ToString();
-//            var model = context.Compilation.GetSemanticModel(classDeclaration.SyntaxTree);
-//            var classInterfaces = model.GetDeclaredSymbol(classDeclaration).AllInterfaces;
-            
-//            var implementINotifyPropertyChanged = classInterfaces.Contains(notifySymbol);
-
-//            var variableDeclaration = fieldDeclaration.Declaration.Variables.First();
-//            var fieldName = variableDeclaration.Identifier.Text;
-//            var fieldType = fieldDeclaration.Declaration.Type.ToString();
-
-//            sourceBuilder.Append($@"using System.ComponentModel;
-//using System.Runtime.CompilerServices;
-//namespace {nmspc}
-//{{
-//    public partial class {classDeclaration.Identifier.Text} {(implementINotifyPropertyChanged == false ? $": {notifySymbol.Name}" : string.Empty)}
-//{{
-//    {(implementINotifyPropertyChanged == false ? $"{GenerateNotifyPropertyChangeImplementation()}" : string.Empty)}
-//    {GetPropertyDeclaration(fieldName, fieldType)}
-//}}
-//}}");
-
-//            context.AddSource(
-//                $"{classDeclaration.Identifier.Text}_{fieldName}.generated",
-//                SourceText.From(sourceBuilder.ToString(), Encoding.UTF8));
-
-//            foreach (var fieldDeclaration in syntaxReciever.IdentifiedFields)
-//            {
-                
-
-
-//            }
         }
 
 
@@ -169,36 +133,7 @@ public void NotifyPropertyChanged([CallerMemberName] string propertyName = """")
                     }
                    
                 }
-
-
             }
-            public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
-            {
-                
-            }
-
-            private static string ExtractName(TypeSyntax type)
-            {
-                while (type != null)
-                {
-                    switch (type)
-                    {
-                        case IdentifierNameSyntax ins:
-                            return ins.Identifier.Text;
-
-                        case QualifiedNameSyntax qns:
-                            type = qns.Right;
-                            break;
-
-                        default:
-                            return null;
-                    }
-                }
-
-                return null;
-            }
-
-           
         }
     }
 }
