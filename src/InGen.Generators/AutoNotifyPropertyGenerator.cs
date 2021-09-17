@@ -31,7 +31,6 @@ namespace InGen.Generators
                 context.AddSource(
                 $"{containingClass.Name}_AutoNotify.generated",
                 SourceText.From(source, Encoding.UTF8));
-
             }
             
         }
@@ -87,9 +86,6 @@ namespace InGen.Generators
             return classBuilder.ToString();
         }
 
-
-
-
         private string NormalizePropertyName(string fieldName)
         {
             return Regex.Replace(fieldName, "_[a-z]", delegate (Match m) {
@@ -131,7 +127,6 @@ public void NotifyPropertyChanged([CallerMemberName] string propertyName = """")
                             IdentifiedFields.Add(fieldInfo);
                         }
                     }
-                   
                 }
             }
         }
