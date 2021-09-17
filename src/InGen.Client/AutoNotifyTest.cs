@@ -2,16 +2,15 @@
 
 namespace InGen.Client
 {
-    public partial class DemoForAutoNotify
+    public partial class AutoNotifyGeneratorTests
     {
-      //  [AutoNotify]
-        //private string _firstName;
         [AutoNotify]
-        private string _lastName;
+        private string _fullName;
+        [AutoNotify]
+        private string _displayName;
 
-        public void Sample()
-        {
-            _lastName = "dsfds";
-        }
+        private string _userName;
+
+       
     }
 }

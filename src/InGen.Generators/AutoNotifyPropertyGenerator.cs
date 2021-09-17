@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -15,61 +16,115 @@ namespace InGen.Generators
     {
         public void Execute(GeneratorExecutionContext context)
         {
-            //var syntaxReciever = (FieldSyntaxReciever<AutoNotifyAttribute>)context.SyntaxReceiver;
-            var syntaxReciever = (FieldSyntaxReciever)context.SyntaxReceiver;
 
-            if (syntaxReciever.IdentifiedField is FieldDeclarationSyntax fieldDeclaration)
+            if (context.SyntaxContextReceiver is not FieldSyntaxReciever syntaxReciever) return;
+
+            var sourceBuilder = new StringBuilder();
+
+            var notifySymbol = context.Compilation.GetTypeByMetadataName("System.ComponentModel.INotifyPropertyChanged");
+
+            foreach (var containingClassGroup in syntaxReciever.IdentifiedFields.GroupBy(x => x.ContainingType))
             {
-                var sourceBuilder = new StringBuilder();
-                var classDeclaration = fieldDeclaration.Ancestors().OfType<ClassDeclarationSyntax>().First();
-                var namespaceDeclaration = classDeclaration.FirstAncestorOrSelf<NamespaceDeclarationSyntax>();
-                var nmspc = namespaceDeclaration.Name.ToString();
-                var model = context.Compilation.GetSemanticModel(classDeclaration.SyntaxTree);
-                var classInterfaces = model.GetDeclaredSymbol(classDeclaration).AllInterfaces;
-                var notifySymbol = context.Compilation.GetTypeByMetadataName("System.ComponentModel.INotifyPropertyChanged");
-                var implementINotifyPropertyChanged = classInterfaces.Contains(notifySymbol);
+                var containingClass = containingClassGroup.Key;
+                var namespc = containingClass.ContainingNamespace;
+                var hasNotifyImplementtion = containingClass.Interfaces.Contains(notifySymbol);
 
-                var variableDeclaration = fieldDeclaration.Declaration.Variables.First();
-                var fieldName = variableDeclaration.Identifier.Text;
-                var fieldType = fieldDeclaration.Declaration.Type.ToString();
-
-                sourceBuilder.Append($@"using System.ComponentModel;
-using System.Runtime.CompilerServices;
-namespace {nmspc}
-{{
-    public partial class {classDeclaration.Identifier.Text} {(implementINotifyPropertyChanged == false? $": {notifySymbol.Name}" : string.Empty)}
-{{
-    {(implementINotifyPropertyChanged == false? $"{GetNotifyPropertyChangeImplementation()}" : string.Empty)}
-    {GetPropertyDeclaration(fieldName,fieldType)}
-}}
-}}");
-
+                var source = GenerateClass(context, containingClass, namespc, containingClassGroup.ToList(), !hasNotifyImplementtion);
                 context.AddSource(
-                    $"{classDeclaration.Identifier.Text}_{fieldName}.generated",
-                    SourceText.From(sourceBuilder.ToString(), Encoding.UTF8));
+                $"{containingClass.Name}_AutoNotify.generated",
+                SourceText.From(source, Encoding.UTF8));
 
-                var g =  context.Compilation;
-                var gg = g.GetDiagnostics();
             }
+            
+
+//            var classDeclaration = fieldDeclaration.Ancestors().OfType<ClassDeclarationSyntax>().First();
+//            var namespaceDeclaration = classDeclaration.FirstAncestorOrSelf<NamespaceDeclarationSyntax>();
+//            var nmspc = namespaceDeclaration.Name.ToString();
+//            var model = context.Compilation.GetSemanticModel(classDeclaration.SyntaxTree);
+//            var classInterfaces = model.GetDeclaredSymbol(classDeclaration).AllInterfaces;
+            
+//            var implementINotifyPropertyChanged = classInterfaces.Contains(notifySymbol);
+
+//            var variableDeclaration = fieldDeclaration.Declaration.Variables.First();
+//            var fieldName = variableDeclaration.Identifier.Text;
+//            var fieldType = fieldDeclaration.Declaration.Type.ToString();
+
+//            sourceBuilder.Append($@"using System.ComponentModel;
+//using System.Runtime.CompilerServices;
+//namespace {nmspc}
+//{{
+//    public partial class {classDeclaration.Identifier.Text} {(implementINotifyPropertyChanged == false ? $": {notifySymbol.Name}" : string.Empty)}
+//{{
+//    {(implementINotifyPropertyChanged == false ? $"{GenerateNotifyPropertyChangeImplementation()}" : string.Empty)}
+//    {GetPropertyDeclaration(fieldName, fieldType)}
+//}}
+//}}");
+
+//            context.AddSource(
+//                $"{classDeclaration.Identifier.Text}_{fieldName}.generated",
+//                SourceText.From(sourceBuilder.ToString(), Encoding.UTF8));
+
+//            foreach (var fieldDeclaration in syntaxReciever.IdentifiedFields)
+//            {
+                
+
+
+//            }
         }
 
 
-
-        private string GetPropertyDeclaration(string fieldName,string fieldType)
+        private string GenerateClass(GeneratorExecutionContext context,INamedTypeSymbol @class,INamespaceSymbol @namespace,List<IFieldSymbol> fields, bool implementNotifyPropertyChange)
         {
-            var str = new StringBuilder();
-            str.Append($"public {fieldType} {NormalizePropertyName(fieldName)}");
-            str.Append("{");
-            str.Append($"get=> {fieldName};");
-            str.Append($"set");
-            str.Append("{");
-            str.Append($"if({fieldName}==value) return;");
-            str.Append($"{fieldName}=value;");
-            str.Append($"NotifyPropertyChanged();");
-            str.Append("}");
-            str.Append("}");
-            return str.ToString();
+            var classBuilder = new StringBuilder();
+
+            classBuilder.AppendLine("using System;");
+
+            if (implementNotifyPropertyChange)
+            {
+                var notifyPropertyChangedSymbol = context.Compilation.GetTypeByMetadataName("System.ComponentModel.INotifyPropertyChanged");
+                var callerMemberSymbol = context.Compilation.GetTypeByMetadataName("System.Runtime.CompilerServices.CallerMemberNameAttribute");
+
+                
+                classBuilder.AppendLine($"using {notifyPropertyChangedSymbol.ContainingNamespace};");
+                classBuilder.AppendLine($"using {callerMemberSymbol.ContainingNamespace};");
+                classBuilder.AppendLine($"namespace {@namespace.ToDisplayString()}");
+                classBuilder.AppendLine("{");
+                classBuilder.AppendLine($"public partial class {@class.Name}:{notifyPropertyChangedSymbol.Name}");
+                classBuilder.AppendLine("{");
+                classBuilder.AppendLine(GenerateNotifyPropertyChangeImplementation());
+            }
+            else
+            {
+                classBuilder.AppendLine($"namespace {@namespace.ToDisplayString()}");
+                classBuilder.AppendLine("{");
+                classBuilder.AppendLine($"public partial class {@class.Name}");
+                classBuilder.AppendLine("{");
+            }
+
+            foreach(var field in fields)
+            {
+                var fieldName = field.Name;
+                var fieldType = field.Type.Name;
+
+                classBuilder.AppendLine($"public {fieldType} {NormalizePropertyName(fieldName)}");
+                classBuilder.AppendLine("{");
+                classBuilder.AppendLine($"get=> {fieldName};");
+                classBuilder.AppendLine($"set");
+                classBuilder.AppendLine("{");
+                classBuilder.AppendLine($"if({fieldName} == value) return;");
+                classBuilder.AppendLine($"{fieldName} = value;");
+                classBuilder.AppendLine($"NotifyPropertyChanged();");
+                classBuilder.AppendLine("}");
+                classBuilder.AppendLine("}");
+            }
+
+            classBuilder.AppendLine("}");
+            classBuilder.AppendLine("}");
+            return classBuilder.ToString();
         }
+
+
+
 
         private string NormalizePropertyName(string fieldName)
         {
@@ -79,7 +134,7 @@ namespace {nmspc}
         }
 
 
-        private string GetNotifyPropertyChangeImplementation()
+        private string GenerateNotifyPropertyChangeImplementation()
         {
             return @"
 public event PropertyChangedEventHandler PropertyChanged;
@@ -95,20 +150,31 @@ public void NotifyPropertyChanged([CallerMemberName] string propertyName = """")
             context.RegisterForSyntaxNotifications(() => new FieldSyntaxReciever());
         }
 
-        private class FieldSyntaxReciever : ISyntaxReceiver //where TAttribute:Attribute
+        private class FieldSyntaxReciever : ISyntaxContextReceiver //where TAttribute:Attribute
         {
-            public FieldDeclarationSyntax IdentifiedField { get; set; }
+            public List<IFieldSymbol> IdentifiedFields { get; } = new List<IFieldSymbol>();
+
+            public void OnVisitSyntaxNode(GeneratorSyntaxContext context)
+            {
+                if (context.Node is FieldDeclarationSyntax fieldDeclaration && fieldDeclaration.AttributeLists.Any())
+                {
+                    var variableDeclaration = fieldDeclaration.Declaration.Variables;
+                    foreach(var variable in variableDeclaration)
+                    {
+                        var field = context.SemanticModel.GetDeclaredSymbol(variable);
+                        if (field is IFieldSymbol fieldInfo && fieldInfo.GetAttributes().Any(x=>x.AttributeClass.ToDisplayString() == "InGen.Types.Attributes.AutoNotifyAttribute"))
+                        {
+                            IdentifiedFields.Add(fieldInfo);
+                        }
+                    }
+                   
+                }
+
+
+            }
             public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
             {
-                if(syntaxNode is FieldDeclarationSyntax fieldDeclaration)
-                {
-                    var attributes = fieldDeclaration.DescendantNodes().OfType<AttributeSyntax>();
-                    if (attributes.Any())
-                    {
-                        var expectedAttribute = attributes.FirstOrDefault(x => ExtractName(x.Name) == "AutoNotify") ;
-                        if (expectedAttribute != null) IdentifiedField = fieldDeclaration;
-                    }
-                }
+                
             }
 
             private static string ExtractName(TypeSyntax type)
@@ -131,6 +197,8 @@ public void NotifyPropertyChanged([CallerMemberName] string propertyName = """")
 
                 return null;
             }
+
+           
         }
     }
 }
