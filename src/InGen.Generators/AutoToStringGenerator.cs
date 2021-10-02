@@ -12,7 +12,7 @@ namespace InGen.Generators
     {
         public void Execute(GeneratorExecutionContext context)
         {
-            var syntaxReceiver = (AutoToStringSyntaxReciever)context.SyntaxReceiver;
+            var syntaxReceiver = (AutoToStringSyntaxReciever)context.SyntaxContextReceiver;
 
             var userClass = syntaxReceiver.IdentifiedClass;
             if (userClass is null)
@@ -37,10 +37,12 @@ namespace InGen.Generators
                         namespace InGen.Client {{
                             public partial class {className}
                             {{
+                       #if DEBUG
                                 public override string ToString()
                                 {{
                                     return $""{toStringContend}"";
                                 }}
+                       #endif
                             }}
                         }}";
             return code;
@@ -51,42 +53,23 @@ namespace InGen.Generators
             context.RegisterForSyntaxNotifications(() => new AutoToStringSyntaxReciever());
         }
 
-        private class AutoToStringSyntaxReciever : ISyntaxReceiver
+        private class AutoToStringSyntaxReciever : ISyntaxContextReceiver //where TAttribute:Attribute
         {
-            public ClassDeclarationSyntax IdentifiedClass { get; private set; }
-            public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
+            public ClassDeclarationSyntax IdentifiedClass { get; private set; } 
+
+            public void OnVisitSyntaxNode(GeneratorSyntaxContext context)
             {
-                if (syntaxNode is ClassDeclarationSyntax classDeclaration)
+                if (context.Node is ClassDeclarationSyntax classDeclarationSyntax && classDeclarationSyntax.AttributeLists.Any())
                 {
-                    var attributes = classDeclaration.DescendantNodes().OfType<AttributeSyntax>();
-                    if (attributes.Any())
+                    var classDeclarationSemantics = context.SemanticModel.GetDeclaredSymbol(classDeclarationSyntax);
+
+                    if(classDeclarationSemantics.GetAttributes().Any(x=>x.AttributeClass.ToDisplayString() == "InGen.Types.Attributes.AutoToStringAttribute"))
                     {
-                        var autoToStringAttribute = attributes.FirstOrDefault(x => ExtractName(x.Name) == "AutoToString");
-                        if (autoToStringAttribute != null) IdentifiedClass = classDeclaration;
+                        IdentifiedClass = classDeclarationSyntax;
                     }
                 }
-            }
-
-            private static string ExtractName(TypeSyntax type)
-            {
-                while (type != null)
-                {
-                    switch (type)
-                    {
-                        case IdentifierNameSyntax ins:
-                            return ins.Identifier.Text;
-
-                        case QualifiedNameSyntax qns:
-                            type = qns.Right;
-                            break;
-
-                        default:
-                            return null;
-                    }
-                }
-
-                return null;
             }
         }
+        
     }
 }
