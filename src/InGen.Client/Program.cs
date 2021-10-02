@@ -7,6 +7,11 @@ namespace InGen.Client
         static void Main(string[] args)
         {
             Console.WriteLine("Hello World!");
+            var sample = new AutoToStringDemo
+            {
+                FirstName = "Jia",
+                LastName = "Naina",
+            };   
         }
     }
 }

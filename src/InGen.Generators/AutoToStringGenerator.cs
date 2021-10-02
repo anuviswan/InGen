@@ -33,16 +33,14 @@ namespace InGen.Generators
         private string GetSource(string className, IEnumerable<PropertyDeclarationSyntax> properties)
         {
             var toStringContend = string.Join(",", properties.Select(x => $"{x.Identifier.Text}={{{x.Identifier.Text}}}"));
+
             var code = $@"
+                        
                         namespace InGen.Client {{
+                        [System.Diagnostics.DebuggerDisplay(""{toStringContend}"")]
                             public partial class {className}
                             {{
-                       #if DEBUG
-                                public override string ToString()
-                                {{
-                                    return $""{toStringContend}"";
-                                }}
-                       #endif
+
                             }}
                         }}";
             return code;
