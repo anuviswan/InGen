@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace InGen.Client
 {
-    [AutoToString]
+    [AutoDebuggerDisplayString]
     public partial class AutoToStringDemo
     {
         public string UserName { get; set; }

@@ -8,11 +8,11 @@ using System.Text;
 namespace InGen.Generators
 {
     [Generator]
-    public class AutoToStringGenerator : ISourceGenerator
+    public class AutoDebuggerDisplayStringGenerator : ISourceGenerator
     {
         public void Execute(GeneratorExecutionContext context)
         {
-            var syntaxReceiver = (AutoToStringSyntaxReciever)context.SyntaxContextReceiver;
+            var syntaxReceiver = (AutoDebuggerDisplayStringSyntaxReciever)context.SyntaxContextReceiver;
 
             var userClass = syntaxReceiver.IdentifiedClass;
             if (userClass is null)
@@ -48,10 +48,10 @@ namespace InGen.Generators
 
         public void Initialize(GeneratorInitializationContext context)
         {
-            context.RegisterForSyntaxNotifications(() => new AutoToStringSyntaxReciever());
+            context.RegisterForSyntaxNotifications(() => new AutoDebuggerDisplayStringSyntaxReciever());
         }
 
-        private class AutoToStringSyntaxReciever : ISyntaxContextReceiver //where TAttribute:Attribute
+        private class AutoDebuggerDisplayStringSyntaxReciever : ISyntaxContextReceiver //where TAttribute:Attribute
         {
             public ClassDeclarationSyntax IdentifiedClass { get; private set; } 
 
@@ -61,7 +61,7 @@ namespace InGen.Generators
                 {
                     var classDeclarationSemantics = context.SemanticModel.GetDeclaredSymbol(classDeclarationSyntax);
 
-                    if(classDeclarationSemantics.GetAttributes().Any(x=>x.AttributeClass.ToDisplayString() == "InGen.Types.Attributes.AutoToStringAttribute"))
+                    if(classDeclarationSemantics.GetAttributes().Any(x=>x.AttributeClass.ToDisplayString() == "InGen.Types.Attributes.AutoDebuggerDisplayStringAttribute"))
                     {
                         IdentifiedClass = classDeclarationSyntax;
                     }
